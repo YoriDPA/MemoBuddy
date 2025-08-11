@@ -83,31 +83,6 @@
             word-break: break-word;
             cursor: pointer;
         }
-        #employeeList li .details {
-            display: none;
-            font-size: 0.85rem;
-            color: #555;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        #employeeList li.active .details {
-            display: flex;
-        }
-        #employeeList li .details .icon {
-            font-size: 1rem;
-        }
-        #employeeList li .details button {
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            min-height: auto;
-            background-color: #ffc107;
-            color: #333;
-        }
-        #employeeList li .details button:hover {
-            background-color: #e0a800;
-        }
         #employeeCounter {
             text-align: center;
             font-weight: bold;
@@ -150,16 +125,6 @@
             }
             input, select, button {
                 font-size: 0.85rem;
-            }
-            #employeeList li .details {
-                font-size: 0.8rem;
-            }
-            #employeeList li .details .icon {
-                font-size: 0.9rem;
-            }
-            #employeeList li .details button {
-                font-size: 0.75rem;
-                padding: 5px 8px;
             }
         }
     </style>
@@ -307,17 +272,6 @@
             }
         }
 
-        // Função pra mostrar/esconder detalhes
-        function toggleDetails(element, employee) {
-            const details = element.querySelector('.details');
-            if (element.classList.contains('active')) {
-                element.classList.remove('active');
-            } else {
-                document.querySelectorAll('#employeeList li').forEach(li => li.classList.remove('active'));
-                element.classList.add('active');
-            }
-        }
-
         // Função pra carregar e mostrar funcionários
         async function loadEmployees(query = '') {
             try {
@@ -354,17 +308,8 @@
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
-                        li.innerHTML = `
-                            ${employee.name}
-                            <div class="details">
-                                <span class="icon">${getRoleIcon(employee.role)}</span>
-                                Matrícula: ${employee.employeeId}, Cargo: ${employee.role}
-                                <button onclick="editEmployee(${JSON.stringify(employee)})">Editar</button>
-                            </div>
-                        `;
-                        li.onclick = (e) => {
-                            if (e.target.tagName !== 'BUTTON') toggleDetails(li, employee);
-                        };
+                        li.textContent = employee.name;
+                        li.onclick = () => editEmployee(employee);
                         ul.appendChild(li);
                     });
                 }
