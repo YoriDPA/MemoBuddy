@@ -83,6 +83,14 @@
             word-break: break-word;
             cursor: pointer;
         }
+        #employeeList li:hover {
+            background-color: #f8f9fa;
+            transition: background-color 0.2s;
+        }
+        #employeeList li.selected {
+            background-color: #e8f4ff !important;
+            border: 2px solid #007bff !important;
+        }
         #employeeCounter {
             text-align: center;
             font-weight: bold;
@@ -249,6 +257,11 @@
             document.getElementById('employeeName').value = '';
             document.getElementById('employeeId').value = '';
             document.getElementById('employeeRole').value = '';
+            // Remove destaque de qualquer item selecionado
+            document.querySelectorAll('#employeeList li').forEach(item => {
+                item.style.backgroundColor = 'white';
+                item.style.border = 'none';
+            });
         }
 
         // Função pra iniciar edição
@@ -257,9 +270,11 @@
             document.getElementById('formTitle').textContent = 'Editar Funcionário';
             document.getElementById('formButton').textContent = 'Atualizar';
             document.getElementById('cancelEditButton').style.display = 'block';
-            document.getElementById('employeeName').value = employee.name;
-            document.getElementById('employeeId').value = employee.employeeId;
-            document.getElementById('employeeRole').value = employee.role;
+            document.getElementById('employeeName').value = employee.name || '';
+            document.getElementById('employeeId').value = employee.employeeId || '';
+            document.getElementById('employeeRole').value = employee.role || '';
+            // Foco no campo de nome pra facilitar
+            document.getElementById('employeeName').focus();
         }
 
         // Função pra obter o ícone do cargo
@@ -308,8 +323,23 @@
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
-                        li.textContent = employee.name;
-                        li.onclick = () => editEmployee(employee);
+                        li.innerHTML = `${getRoleIcon(employee.role)} <strong>${employee.name}</strong> (Matrícula: ${employee.employeeId}, Cargo: ${employee.role})`;
+                        li.onclick = () => {
+                            // Remove destaque de outros itens
+                            document.querySelectorAll('#employeeList li').forEach(item => {
+                                item.style.backgroundColor = 'white';
+                                item.style.border = 'none';
+                                item.classList.remove('selected');
+                            });
+                            // Adiciona destaque ao item clicado
+                            li.style.backgroundColor = '#e8f4ff';
+                            li.style.border = '2px solid #007bff';
+                            li.classList.add('selected');
+                            // Chama a função de edição
+                            editEmployee(employee);
+                            // Rola pro formulário
+                            document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+                        };
                         ul.appendChild(li);
                     });
                 }
