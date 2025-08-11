@@ -11,10 +11,12 @@
             margin: 20px auto;
             padding: 10px;
             background-color: #f0f0f0;
+            box-sizing: border-box;
         }
         h1 {
             color: #333;
             text-align: center;
+            font-size: 1.8rem;
         }
         .form-container, .search-container {
             background: white;
@@ -25,11 +27,12 @@
         }
         input, select, button {
             padding: 10px;
-            margin: 5px;
+            margin: 5px 0;
             border-radius: 5px;
             border: 1px solid #ccc;
-            width: calc(100% - 22px); /* Ajusta pra margem e padding */
+            width: 100%;
             box-sizing: border-box;
+            font-size: 1rem;
         }
         select {
             cursor: pointer;
@@ -39,9 +42,32 @@
             color: white;
             border: none;
             cursor: pointer;
+            padding: 12px;
+            min-height: 44px;
         }
         button:hover {
             background-color: #218838;
+        }
+        #listAllButton {
+            background-color: #007bff;
+            width: auto;
+            min-width: 120px;
+        }
+        #listAllButton:hover {
+            background-color: #0056b3;
+        }
+        #cancelEditButton {
+            background-color: #6c757d;
+            margin-top: 5px;
+        }
+        #cancelEditButton:hover {
+            background-color: #5a6268;
+        }
+        .search-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
         #employeeList {
             list-style: none;
@@ -53,27 +79,88 @@
             margin: 5px 0;
             border-radius: 5px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #employeeList li button {
-            padding: 5px 10px;
-            font-size: 12px;
-            background: #dc3545;
-            border: none;
-            color: white;
-            border-radius: 5px;
+            font-size: 0.9rem;
+            word-break: break-word;
             cursor: pointer;
         }
-        #employeeList li button:hover {
-            background: #c82333;
+        #employeeList li .details {
+            display: none;
+            font-size: 0.85rem;
+            color: #555;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #employeeList li.active .details {
+            display: flex;
+        }
+        #employeeList li .details .icon {
+            font-size: 1rem;
+        }
+        #employeeList li .details button {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            min-height: auto;
+            background-color: #ffc107;
+            color: #333;
+        }
+        #employeeList li .details button:hover {
+            background-color: #e0a800;
         }
         #employeeCounter {
             text-align: center;
             font-weight: bold;
             color: #333;
             margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        /* Media Queries pra dispositivos móveis */
+        @media (max-width: 600px) {
+            body {
+                margin: 10px;
+                padding: 5px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            .form-container, .search-container {
+                padding: 10px;
+            }
+            input, select, button {
+                font-size: 0.9rem;
+                padding: 8px;
+            }
+            #listAllButton, #cancelEditButton {
+                min-width: 100px;
+                padding: 8px;
+            }
+            #employeeList li {
+                font-size: 0.85rem;
+                padding: 8px;
+            }
+            #employeeCounter {
+                font-size: 0.9rem;
+            }
+        }
+        @media (max-width: 400px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            input, select, button {
+                font-size: 0.85rem;
+            }
+            #employeeList li .details {
+                font-size: 0.8rem;
+            }
+            #employeeList li .details .icon {
+                font-size: 0.9rem;
+            }
+            #employeeList li .details button {
+                font-size: 0.75rem;
+                padding: 5px 8px;
+            }
         }
     </style>
 </head>
@@ -81,7 +168,7 @@
     <h1>MemoBuddy - Teus Funcionários na Nuvem! ☁️😎</h1>
     
     <div class="form-container">
-        <h3>Adicionar Funcionário</h3>
+        <h3 id="formTitle">Adicionar Funcionário</h3>
         <input type="text" id="employeeName" placeholder="Nome do funcionário">
         <input type="text" id="employeeId" placeholder="Matrícula">
         <select id="employeeRole">
@@ -90,20 +177,22 @@
             <option value="Gari">Gari</option>
             <option value="Motorista">Motorista</option>
         </select>
-        <button onclick="addEmployee()">Salvar na Nuvem</button>
+        <button id="formButton" onclick="saveEmployee()">Salvar na Nuvem</button>
+        <button id="cancelEditButton" style="display: none;" onclick="cancelEdit()">Cancelar</button>
     </div>
     
     <div class="search-container">
         <h3>Procurar Funcionário</h3>
         <input type="text" id="searchInput" placeholder="Digite nome, matrícula ou cargo" onkeyup="searchEmployees()">
+        <button id="listAllButton" onclick="listAllEmployees()">Listar Todos</button>
     </div>
     
     <p id="employeeCounter">Total de funcionários na nuvem: 0 ☁️</p>
     <ul id="employeeList"></ul>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     
     <script>
         // Configuração do teu projeto Firebase
@@ -120,26 +209,65 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Função pra adicionar funcionário
-        async function addEmployee() {
-            let name = document.getElementById('employeeName').value.trim();
+        // Estado pra rastrear edição
+        let editingEmployeeId = null;
+
+        // Função pra verificar matrícula duplicada
+        async function checkDuplicateEmployeeId(employeeId, excludeDocId = null) {
+            try {
+                const querySnapshot = await db.collection('employees')
+                    .where('employeeId', '==', employeeId)
+                    .get();
+                if (excludeDocId) {
+                    return querySnapshot.docs.some(doc => doc.id !== excludeDocId);
+                }
+                return !querySnapshot.empty;
+            } catch (error) {
+                console.error('Erro ao verificar matrícula:', error);
+                return false;
+            }
+        }
+
+        // Função pra adicionar ou editar funcionário
+        async function saveEmployee() {
+            let name = document.getElementById('employeeName').value.trim().toUpperCase();
             let employeeId = document.getElementById('employeeId').value.trim();
             let role = document.getElementById('employeeRole').value;
 
             if (name && employeeId && role) {
                 try {
-                    await db.collection('employees').add({
-                        name: name,
-                        employeeId: employeeId,
-                        role: role,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    document.getElementById('employeeName').value = '';
-                    document.getElementById('employeeId').value = '';
-                    document.getElementById('employeeRole').value = '';
-                    alert('Funcionário salvo na nuvem! Tá voando alto! 🚀');
+                    // Verifica matrícula duplicada
+                    const isDuplicate = await checkDuplicateEmployeeId(employeeId, editingEmployeeId);
+                    if (isDuplicate) {
+                        alert('Opa, essa matrícula já tá cadastrada! Tenta outra, campeão! 😜');
+                        return;
+                    }
+
+                    if (editingEmployeeId) {
+                        // Edita funcionário existente
+                        await db.collection('employees').doc(editingEmployeeId).update({
+                            name: name,
+                            employeeId: employeeId,
+                            role: role,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        alert('Funcionário atualizado na nuvem! Tá voando alto! 🚀');
+                    } else {
+                        // Adiciona novo funcionário
+                        await db.collection('employees').add({
+                            name: name,
+                            employeeId: employeeId,
+                            role: role,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        alert('Funcionário salvo na nuvem! Tá voando alto! 🚀');
+                    }
+
+                    // Reseta o formulário
+                    cancelEdit();
                     loadEmployees();
                 } catch (error) {
+                    console.error('Erro ao salvar:', error);
                     alert('Opa, algo deu errado! Erro: ' + error.message);
                 }
             } else {
@@ -147,59 +275,117 @@
             }
         }
 
-        // Função pra deletar funcionário
-        async function deleteEmployee(docId) {
-            if (confirm('Tem certeza que quer apagar esse funcionário? 😱')) {
-                try {
-                    await db.collection('employees').doc(docId).delete();
-                    alert('Funcionário deletado! Foi pro espaço! 🌌');
-                    loadEmployees();
-                } catch (error) {
-                    alert('Erro ao deletar: ' + error.message);
-                }
+        // Função pra cancelar edição
+        function cancelEdit() {
+            editingEmployeeId = null;
+            document.getElementById('formTitle').textContent = 'Adicionar Funcionário';
+            document.getElementById('formButton').textContent = 'Salvar na Nuvem';
+            document.getElementById('cancelEditButton').style.display = 'none';
+            document.getElementById('employeeName').value = '';
+            document.getElementById('employeeId').value = '';
+            document.getElementById('employeeRole').value = '';
+        }
+
+        // Função pra iniciar edição
+        function editEmployee(employee) {
+            editingEmployeeId = employee.id;
+            document.getElementById('formTitle').textContent = 'Editar Funcionário';
+            document.getElementById('formButton').textContent = 'Atualizar';
+            document.getElementById('cancelEditButton').style.display = 'block';
+            document.getElementById('employeeName').value = employee.name;
+            document.getElementById('employeeId').value = employee.employeeId;
+            document.getElementById('employeeRole').value = employee.role;
+        }
+
+        // Função pra obter o ícone do cargo
+        function getRoleIcon(role) {
+            switch (role) {
+                case 'Gari': return '🧹';
+                case 'Motorista': return '🚛';
+                case 'Coletor': return '🗑️';
+                default: return '';
+            }
+        }
+
+        // Função pra mostrar/esconder detalhes
+        function toggleDetails(element, employee) {
+            const details = element.querySelector('.details');
+            if (element.classList.contains('active')) {
+                element.classList.remove('active');
+            } else {
+                document.querySelectorAll('#employeeList li').forEach(li => li.classList.remove('active'));
+                element.classList.add('active');
             }
         }
 
         // Função pra carregar e mostrar funcionários
         async function loadEmployees(query = '') {
             try {
+                console.log('Iniciando busca com query:', query);
                 let ul = document.getElementById('employeeList');
                 let counter = document.getElementById('employeeCounter');
                 ul.innerHTML = '';
-                let q = db.collection('employees').orderBy('timestamp', 'desc');
+                let q = db.collection('employees').orderBy('employeeId', 'asc');
                 let snapshot = await q.get();
+                console.log('Documentos encontrados:', snapshot.size);
                 let employees = [];
                 snapshot.forEach(doc => {
                     let employee = doc.data();
-                    let displayText = `${employee.name} - Matrícula: ${employee.employeeId}, Cargo: ${employee.role}`;
+                    console.log('Dados do documento:', employee);
+                    let firstName = (employee.name || '').split(' ')[0]?.toLowerCase() || '';
                     if (
-                        employee.name.toLowerCase().includes(query.toLowerCase()) ||
-                        employee.employeeId.toLowerCase().includes(query.toLowerCase()) ||
-                        employee.role.toLowerCase().includes(query.toLowerCase())
+                        query === '' ||
+                        employee.employeeId?.toLowerCase().includes(query.toLowerCase()) ||
+                        firstName.startsWith(query.toLowerCase()) ||
+                        employee.role?.toLowerCase().includes(query.toLowerCase())
                     ) {
-                        employees.push({ id: doc.id, displayText: displayText });
+                        employees.push({
+                            id: doc.id,
+                            name: employee.name,
+                            employeeId: employee.employeeId,
+                            role: employee.role
+                        });
                     }
                 });
-                // Atualiza o contador
+                console.log('Funcionários filtrados:', employees);
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
-                if (employees.length === 0 && query) {
+                if (employees.length === 0) {
                     ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo! 😅</li>';
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
-                        li.innerHTML = `${employee.displayText} <button onclick="deleteEmployee('${employee.id}')">X</button>`;
+                        li.innerHTML = `
+                            ${employee.name}
+                            <div class="details">
+                                <span class="icon">${getRoleIcon(employee.role)}</span>
+                                Matrícula: ${employee.employeeId}, Cargo: ${employee.role}
+                                <button onclick="editEmployee(${JSON.stringify(employee)})">Editar</button>
+                            </div>
+                        `;
+                        li.onclick = (e) => {
+                            if (e.target.tagName !== 'BUTTON') toggleDetails(li, employee);
+                        };
                         ul.appendChild(li);
                     });
                 }
             } catch (error) {
+                console.error('Erro ao carregar lista:', error);
                 alert('Erro ao carregar a lista: ' + error.message);
             }
         }
 
         // Função pra buscar funcionários
         function searchEmployees() {
-            let query = document.getElementById('searchInput').value;
+            let query = document.getElementById('searchInput').value.trim();
+            console.log('Evento de busca disparado com:', query);
             loadEmployees(query);
+        }
+
+        // Função pra listar todos os funcionários
+        function listAllEmployees() {
+            document.getElementById('searchInput').value = '';
+            console.log('Listando todos os funcionários');
+            loadEmployees('');
         }
 
         // Carrega a lista ao abrir a página
