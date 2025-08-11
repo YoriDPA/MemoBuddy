@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemoBuddy - Funcionários na Nuvem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-container, .search-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #employeeList {
+            list-style: none;
+            padding: 0;
+        }
+        #employeeList li {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>MemoBuddy - Teus Funcionários na Nuvem! ☁️😎</h1>
+    
+    <div class="form-container">
+        <h3>Adicionar Funcionário</h3>
+        <input type="text" id="employeeData" placeholder="Ex: José Silva - Matrícula 12345, setor: TI">
+        <button onclick="addEmployee()">Salvar na Nuvem</button>
+    </div>
+    
+    <div class="search-container">
+        <h3>Procurar Funcionário</h3>
+        <input type="text" id="searchInput" placeholder="Digite nome, matrícula ou qualquer coisa" onkeyup="searchEmployees()">
+    </div>
+    
+    <ul id="employeeList"></ul>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Substitua pelo teu firebaseConfig (copiado do Firebase Console)
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "SEU_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Função pra adicionar funcionário
+        async function addEmployee() {
+            let input = document.getElementById('employeeData').value.trim();
+            if (input) {
+                try {
+                    await db.collection('employees').add({
+                        data: input,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    document.getElementById('employeeData').value = '';
+                    alert('Funcionário salvo na nuvem! Mais rápido que o café da manhã da Ana! ☕🚀');
+                    loadEmployees();
+                } catch (error) {
+                    alert('Opa, algo deu errado! Erro: ' + error.message);
+                }
+            } else {
+                alert('Escreve algo aí, campeão! Não sou adivinho! 😜');
+            }
+        }
+
+        // Função pra carregar e mostrar funcionários
+        async function loadEmployees(query = '') {
+            try {
+                let ul = document.getElementById('employeeList');
+                ul.innerHTML = '';
+                let q = db.collection('employees').orderBy('timestamp', 'desc');
+                let snapshot = await q.get();
+                let employees = [];
+                snapshot.forEach(doc => {
+                    let employee = doc.data().data;
+                    if (employee.toLowerCase().includes(query.toLowerCase())) {
+                        employees.push(employee);
+                    }
+                });
+                if (employees.length === 0 && query) {
+                    ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo, vai! 😅</li>';
+                } else {
+                    employees.forEach(employee => {
+                        let li = document.createElement('li');
+                        li.textContent = employee;
+                        ul.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                alert('Erro ao carregar a lista: ' + error.message);
+            }
+        }
+
+        // Função pra buscar funcionários
+        function searchEmployees() {
+            let query = document.getElementById('searchInput').value;
+            loadEmployees(query);
+        }
+
+        // Carrega a lista ao abrir a página
+        loadEmployees();
+    </script>
+</body>
+</html>
