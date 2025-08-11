@@ -72,15 +72,17 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     
     <script>
-        // Substitua pelo teu firebaseConfig (copiado do Firebase Console)
+        // Configuração do teu projeto Firebase (copiada da captura)
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_PROJETO.firebaseapp.com",
-            projectId: "SEU_PROJETO",
-            storageBucket: "SEU_PROJETO.appspot.com",
-            messagingSenderId: "SEU_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyC35sX_nm4lX4oa1tpNSuZTee-kcb0Dsfk",
+            authDomain: "memobuddy-8aa1d.firebaseapp.com",
+            projectId: "memobuddy-8aa1d",
+            storageBucket: "memobuddy-8aa1d.firebasestorage.app",
+            messagingSenderId: "43382520454",
+            appId: "1:43382520454:web:1bdabfb207240291906f07"
         };
+
+        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -94,7 +96,7 @@
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     document.getElementById('employeeData').value = '';
-                    alert('Funcionário salvo na nuvem! Mais rápido que o café da manhã da Ana! ☕🚀');
+                    alert('Funcionário salvo na nuvem! Mais rápido que o Wi-Fi da empresa! 🚀');
                     loadEmployees();
                 } catch (error) {
                     alert('Opa, algo deu errado! Erro: ' + error.message);
