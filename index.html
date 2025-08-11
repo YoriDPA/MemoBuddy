@@ -72,7 +72,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     
     <script>
-        // Configuração do teu projeto Firebase (copiada da captura)
+        // Configuração do teu projeto Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyC35sX_nm4lX4oa1tpNSuZTee-kcb0Dsfk",
             authDomain: "memobuddy-8aa1d.firebaseapp.com",
@@ -121,7 +121,7 @@
                     }
                 });
                 if (employees.length === 0 && query) {
-                    ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo, vai! 😅</li>';
+                    ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo! 😅</li>';
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
