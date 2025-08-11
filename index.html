@@ -143,7 +143,6 @@
     <div class="form-container">
         <h3 id="formTitle">Adicionar Funcionário</h3>
         <input type="text" id="employeeName" placeholder="Nome do funcionário">
-        <input type="text" id="employeeId" placeholder="Matrícula">
         <select id="employeeRole">
             <option value="" disabled selected>Selecione o cargo</option>
             <option value="Coletor">Coletor</option>
@@ -156,7 +155,7 @@
     
     <div class="search-container">
         <h3>Procurar Funcionário</h3>
-        <input type="text" id="searchInput" placeholder="Digite nome, matrícula ou cargo" onkeyup="searchEmployees()">
+        <input type="text" id="searchInput" placeholder="Digite nome ou cargo" onkeyup="searchEmployees()">
         <button id="listAllButton" onclick="listAllEmployees()">Listar Todos</button>
     </div>
     
@@ -185,42 +184,17 @@
         // Estado pra rastrear edição
         let editingEmployeeId = null;
 
-        // Função pra verificar matrícula duplicada
-        async function checkDuplicateEmployeeId(employeeId, excludeDocId = null) {
-            try {
-                const querySnapshot = await db.collection('employees')
-                    .where('employeeId', '==', employeeId)
-                    .get();
-                if (excludeDocId) {
-                    return querySnapshot.docs.some(doc => doc.id !== excludeDocId);
-                }
-                return !querySnapshot.empty;
-            } catch (error) {
-                console.error('Erro ao verificar matrícula:', error);
-                return false;
-            }
-        }
-
         // Função pra adicionar ou editar funcionário
         async function saveEmployee() {
             let name = document.getElementById('employeeName').value.trim().toUpperCase();
-            let employeeId = document.getElementById('employeeId').value.trim();
             let role = document.getElementById('employeeRole').value;
 
-            if (name && employeeId && role) {
+            if (name && role) {
                 try {
-                    // Verifica matrícula duplicada
-                    const isDuplicate = await checkDuplicateEmployeeId(employeeId, editingEmployeeId);
-                    if (isDuplicate) {
-                        alert('Opa, essa matrícula já tá cadastrada! Tenta outra, campeão! 😜');
-                        return;
-                    }
-
                     if (editingEmployeeId) {
                         // Edita funcionário existente
                         await db.collection('employees').doc(editingEmployeeId).update({
                             name: name,
-                            employeeId: employeeId,
                             role: role,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
@@ -229,7 +203,6 @@
                         // Adiciona novo funcionário
                         await db.collection('employees').add({
                             name: name,
-                            employeeId: employeeId,
                             role: role,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
@@ -255,12 +228,12 @@
             document.getElementById('formButton').textContent = 'Salvar na Nuvem';
             document.getElementById('cancelEditButton').style.display = 'none';
             document.getElementById('employeeName').value = '';
-            document.getElementById('employeeId').value = '';
             document.getElementById('employeeRole').value = '';
             // Remove destaque de qualquer item selecionado
             document.querySelectorAll('#employeeList li').forEach(item => {
                 item.style.backgroundColor = 'white';
                 item.style.border = 'none';
+                item.classList.remove('selected');
             });
         }
 
@@ -271,7 +244,6 @@
             document.getElementById('formButton').textContent = 'Atualizar';
             document.getElementById('cancelEditButton').style.display = 'block';
             document.getElementById('employeeName').value = employee.name || '';
-            document.getElementById('employeeId').value = employee.employeeId || '';
             document.getElementById('employeeRole').value = employee.role || '';
             // Foco no campo de nome pra facilitar
             document.getElementById('employeeName').focus();
@@ -294,24 +266,22 @@
                 let ul = document.getElementById('employeeList');
                 let counter = document.getElementById('employeeCounter');
                 ul.innerHTML = '';
-                let q = db.collection('employees').orderBy('employeeId', 'asc');
+                let q = db.collection('employees').orderBy('name', 'asc');
                 let snapshot = await q.get();
                 console.log('Documentos encontrados:', snapshot.size);
                 let employees = [];
                 snapshot.forEach(doc => {
                     let employee = doc.data();
-                    console.log('Dados do documento:', employee);
+                    console.log('Dados do documento jj:', employee);
                     let firstName = (employee.name || '').split(' ')[0]?.toLowerCase() || '';
                     if (
                         query === '' ||
-                        employee.employeeId?.toLowerCase().includes(query.toLowerCase()) ||
                         firstName.startsWith(query.toLowerCase()) ||
                         employee.role?.toLowerCase().includes(query.toLowerCase())
                     ) {
                         employees.push({
                             id: doc.id,
                             name: employee.name,
-                            employeeId: employee.employeeId,
                             role: employee.role
                         });
                     }
@@ -323,7 +293,7 @@
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
-                        li.innerHTML = `${getRoleIcon(employee.role)} <strong>${employee.name}</strong> (Matrícula: ${employee.employeeId}, Cargo: ${employee.role})`;
+                        li.innerHTML = `${getRoleIcon(employee.role)} <strong>${employee.name}</strong>`;
                         li.onclick = () => {
                             // Remove destaque de outros itens
                             document.querySelectorAll('#employeeList li').forEach(item => {
