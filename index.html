@@ -368,16 +368,13 @@
                         });
                     }
                 });
-                // Ordena por employeeId e name no cliente
+                // Ordena por employeeId em ordem crescente
                 employees.sort((a, b) => {
-                    const idA = (a.employeeId || '').toString().toLowerCase();
-                    const idB = (b.employeeId || '').toString().toLowerCase();
-                    const nameA = (a.name || '').toString().toLowerCase();
-                    const nameB = (b.name || '').toString().toLowerCase();
-                    console.log(`Comparando: employeeId: ${idA} vs ${idB}, name: ${nameA} vs ${nameB}`);
-                    return idA.localeCompare(idB) || nameA.localeCompare(nameB);
+                    const idA = a.employeeId || '';
+                    const idB = b.employeeId || '';
+                    return idA.localeCompare(idB);
                 });
-                console.log('Funcionários ordenados:', employees.map(e => `${e.employeeId} - ${e.name}`));
+                console.log('Funcionários ordenados por matrícula:', employees.map(e => `${e.employeeId} - ${e.name}`));
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
                 if (employees.length === 0) {
                     ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo! 😅</li>';
@@ -422,7 +419,7 @@
                 console.error('Erro ao carregar lista:', error);
                 let errorMessage = error.message || 'Erro desconhecido';
                 if (error.code === 'failed-precondition') {
-                    errorMessage = 'Índice do Firestore ausente. Acesse o Firebase Console e crie um índice composto para employees com employeeId (asc) e name (asc).';
+                    errorMessage = 'Índice do Firestore ausente. Acesse o Firebase Console e crie um índice composto para employees com employeeId (asc).';
                 }
                 alert('Erro ao carregar a lista: ' + errorMessage);
             }
