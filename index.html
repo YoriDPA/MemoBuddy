@@ -98,8 +98,6 @@
             margin-bottom: 10px;
             font-size: 1rem;
         }
-
-        /* Media Queries pra dispositivos móveis */
         @media (max-width: 600px) {
             body {
                 margin: 10px;
@@ -139,7 +137,7 @@
 </head>
 <body>
     <h1>MemoBuddy - Teus Funcionários na Nuvem! ☁️😎</h1>
-    
+   
     <div class="form-container">
         <h3 id="formTitle">Adicionar Funcionário</h3>
         <input type="text" id="employeeName" placeholder="Nome do funcionário">
@@ -153,20 +151,19 @@
         <button id="formButton" onclick="saveEmployee()">Salvar na Nuvem</button>
         <button id="cancelEditButton" style="display: none;" onclick="cancelEdit()">Cancelar</button>
     </div>
-    
+   
     <div class="search-container">
         <h3>Procurar Funcionário</h3>
         <input type="text" id="searchInput" placeholder="Digite nome, matrícula ou cargo" onkeyup="searchEmployees()">
         <button id="listAllButton" onclick="listAllEmployees()">Listar Todos</button>
     </div>
-    
+   
     <p id="employeeCounter">Total de funcionários na nuvem: 0 ☁️</p>
     <ul id="employeeList"></ul>
-
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-    
+   
     <script>
         // Configuração do teu projeto Firebase
         const firebaseConfig = {
@@ -177,14 +174,11 @@
             messagingSenderId: "43382520454",
             appId: "1:43382520454:web:1bdabfb207240291906f07"
         };
-
         // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
         // Estado pra rastrear edição
         let editingEmployeeId = null;
-
         // Função pra verificar matrícula duplicada
         async function checkDuplicateEmployeeId(employeeId, excludeDocId = null) {
             try {
@@ -200,22 +194,40 @@
                 return false;
             }
         }
-
+        // Função pra verificar nome duplicado
+        async function checkDuplicateEmployeeName(name, excludeDocId = null) {
+            try {
+                const querySnapshot = await db.collection('employees')
+                    .where('name', '==', name.toUpperCase())
+                    .get();
+                if (excludeDocId) {
+                    return querySnapshot.docs.some(doc => doc.id !== excludeDocId);
+                }
+                return !querySnapshot.empty;
+            } catch (error) {
+                console.error('Erro ao verificar nome:', error);
+                return false;
+            }
+        }
         // Função pra adicionar ou editar funcionário
         async function saveEmployee() {
             let name = document.getElementById('employeeName').value.trim().toUpperCase();
             let employeeId = document.getElementById('employeeId').value.trim();
             let role = document.getElementById('employeeRole').value;
-
             if (name && employeeId && role) {
                 try {
                     // Verifica matrícula duplicada
-                    const isDuplicate = await checkDuplicateEmployeeId(employeeId, editingEmployeeId);
-                    if (isDuplicate) {
+                    const isDuplicateId = await checkDuplicateEmployeeId(employeeId, editingEmployeeId);
+                    if (isDuplicateId) {
                         alert('Opa, essa matrícula já tá cadastrada! Tenta outra, campeão! 😜');
                         return;
                     }
-
+                    // Verifica nome duplicado
+                    const isDuplicateName = await checkDuplicateEmployeeName(name, editingEmployeeId);
+                    if (isDuplicateName) {
+                        alert('Opa, esse nome já tá cadastrado! Tenta outro, campeão! 😜');
+                        return;
+                    }
                     if (editingEmployeeId) {
                         // Edita funcionário existente
                         await db.collection('employees').doc(editingEmployeeId).update({
@@ -235,7 +247,6 @@
                         });
                         alert('Funcionário salvo na nuvem! Tá voando alto! 🚀');
                     }
-
                     // Reseta o formulário
                     cancelEdit();
                     loadEmployees();
@@ -247,7 +258,6 @@
                 alert('Preenche todos os campos, campeão! Não deixa a nuvem vazia! 😜');
             }
         }
-
         // Função pra cancelar edição
         function cancelEdit() {
             editingEmployeeId = null;
@@ -264,7 +274,6 @@
                 item.classList.remove('selected');
             });
         }
-
         // Função pra iniciar edição
         function editEmployee(employee) {
             editingEmployeeId = employee.id;
@@ -277,7 +286,6 @@
             // Foco no campo de nome pra facilitar
             document.getElementById('employeeName').focus();
         }
-
         // Função pra obter o ícone do cargo
         function getRoleIcon(role) {
             switch (role) {
@@ -287,7 +295,6 @@
                 default: return '';
             }
         }
-
         // Função pra carregar e mostrar funcionários
         async function loadEmployees(query = '') {
             try {
@@ -349,21 +356,18 @@
                 alert('Erro ao carregar a lista: ' + error.message);
             }
         }
-
         // Função pra buscar funcionários
         function searchEmployees() {
             let query = document.getElementById('searchInput').value.trim();
             console.log('Evento de busca disparado com:', query);
             loadEmployees(query);
         }
-
         // Função pra listar todos os funcionários
         function listAllEmployees() {
             document.getElementById('searchInput').value = '';
             console.log('Listando todos os funcionários');
             loadEmployees('');
         }
-
         // Carrega a lista ao abrir a página
         loadEmployees();
     </script>
