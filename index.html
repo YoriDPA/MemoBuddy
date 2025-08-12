@@ -99,6 +99,13 @@
             margin-left: 5px;
             color: #666;
         }
+        #employeeList li.edit-mode .employee-info input,
+        #employeeList li.edit-mode .employee-info select {
+            padding: 5px;
+            margin: 2px 0;
+            width: auto;
+            min-width: 100px;
+        }
         #employeeList li:hover {
             background-color: #f8f9fa;
             transition: background-color 0.2s;
@@ -107,15 +114,20 @@
             background-color: #e8f4ff !important;
             border: 2px solid #007bff !important;
         }
-        .delete-icon {
+        .delete-icon, .edit-icon, .save-icon, .cancel-icon {
             color: #dc3545;
             font-size: 0.9rem;
             cursor: pointer;
             padding: 2px 5px;
+            margin-left: 5px;
         }
-        .delete-icon:hover {
-            color: #c82333;
-        }
+        .edit-icon { color: #007bff; }
+        .save-icon { color: #28a745; }
+        .cancel-icon { color: #6c757d; }
+        .delete-icon:hover { color: #c82333; }
+        .edit-icon:hover { color: #0056b3; }
+        .save-icon:hover { color: #218838; }
+        .cancel-icon:hover { color: #5a6268; }
         #employeeCounter {
             text-align: center;
             font-weight: bold;
@@ -210,6 +222,7 @@
         const db = firebase.firestore();
         // Estado pra rastrear edição
         let editingEmployeeId = null;
+        let currentEditingLi = null;
         // Função pra verificar matrícula duplicada
         async function checkDuplicateEmployeeId(employeeId, excludeDocId = null) {
             try {
@@ -304,6 +317,10 @@
                 item.style.border = 'none';
                 item.classList.remove('selected');
             });
+            if (currentEditingLi) {
+                currentEditingLi.classList.remove('edit-mode');
+                currentEditingLi = null;
+            }
         }
         // Função pra iniciar edição
         function editEmployee(employee) {
@@ -329,6 +346,89 @@
                     alert('Opa, algo deu errado ao apagar! Erro: ' + error.message);
                 }
             }
+        }
+        // Função pra iniciar edição em linha
+        function startInlineEdit(li, employee) {
+            if (currentEditingLi) return; // Impede múltiplas edições simultâneas
+            currentEditingLi = li;
+            li.classList.add('edit-mode');
+
+            let infoDiv = li.querySelector('.employee-info');
+            let nameSpan = infoDiv.querySelector('.employee-name');
+            let idRoleSpan = infoDiv.querySelector('.employee-id-role');
+
+            // Cria inputs para edição
+            let nameInput = document.createElement('input');
+            nameInput.value = employee.name;
+            nameInput.style.width = '150px';
+
+            let idInput = document.createElement('input');
+            idInput.value = employee.employeeId;
+            idInput.style.width = '100px';
+
+            let roleSelect = document.createElement('select');
+            ['Coletor', 'Gari', 'Motorista'].forEach(role => {
+                let option = document.createElement('option');
+                option.value = role;
+                option.text = role;
+                if (role === employee.role) option.selected = true;
+                roleSelect.appendChild(option);
+            });
+            roleSelect.style.width = '120px';
+
+            // Substitui os spans pelos inputs
+            infoDiv.innerHTML = '';
+            infoDiv.appendChild(document.createTextNode(`${getRoleIcon(employee.role)} `));
+            infoDiv.appendChild(nameInput);
+            infoDiv.appendChild(document.createTextNode(' - '));
+            infoDiv.appendChild(idInput);
+            infoDiv.appendChild(document.createTextNode(' - '));
+            infoDiv.appendChild(roleSelect);
+
+            // Adiciona botões de salvar e cancelar
+            let saveIcon = document.createElement('span');
+            saveIcon.textContent = '💾';
+            saveIcon.className = 'save-icon';
+            saveIcon.onclick = () => saveInlineEdit(li, employee.id, nameInput.value, idInput.value, roleSelect.value);
+
+            let cancelIcon = document.createElement('span');
+            cancelIcon.textContent = '🚫';
+            cancelIcon.className = 'cancel-icon';
+            cancelIcon.onclick = () => cancelInlineEdit(li, employee);
+
+            li.replaceChild(saveIcon, li.querySelector('.edit-icon'));
+            li.replaceChild(cancelIcon, li.querySelector('.delete-icon'));
+        }
+        // Função pra salvar edição em linha
+        async function saveInlineEdit(li, employeeId, newName, newEmployeeId, newRole) {
+            try {
+                const isDuplicateId = await checkDuplicateEmployeeId(newEmployeeId, employeeId);
+                if (isDuplicateId) {
+                    alert('Opa, essa matrícula já tá cadastrada! Tenta outra, campeão! 😜');
+                    return;
+                }
+                const isDuplicateName = await checkDuplicateEmployeeName(newName, employeeId);
+                if (isDuplicateName) {
+                    alert('Opa, esse nome já tá cadastrado! Tenta outro, campeão! 😜');
+                    return;
+                }
+                await db.collection('employees').doc(employeeId).update({
+                    name: newName.toUpperCase(),
+                    employeeId: newEmployeeId,
+                    role: newRole,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Funcionário atualizado na nuvem! Tá voando alto! 🚀');
+                loadEmployees();
+            } catch (error) {
+                console.error('Erro ao salvar edição em linha:', error);
+                alert('Opa, algo deu errado! Erro: ' + error.message);
+            }
+        }
+        // Função pra cancelar edição em linha
+        function cancelInlineEdit(li, employee) {
+            loadEmployees();
+            currentEditingLi = null;
         }
         // Função pra obter o ícone do cargo
         function getRoleIcon(role) {
@@ -389,6 +489,13 @@
                         let infoDiv = document.createElement('div');
                         infoDiv.className = 'employee-info';
                         infoDiv.innerHTML = `${getRoleIcon(employee.role)} <span class="employee-name">${employee.name}</span> <span class="employee-id-role">-${employee.employeeId} - ${employee.role}</span>`;
+                        let editIcon = document.createElement('span');
+                        editIcon.textContent = '✏️';
+                        editIcon.className = 'edit-icon';
+                        editIcon.onclick = (e) => {
+                            e.stopPropagation();
+                            startInlineEdit(li, employee);
+                        };
                         let deleteIcon = document.createElement('span');
                         deleteIcon.textContent = '🗑️';
                         deleteIcon.className = 'delete-icon';
@@ -397,9 +504,10 @@
                             deleteEmployee(employee.id, employee.name);
                         };
                         li.appendChild(infoDiv);
+                        li.appendChild(editIcon);
                         li.appendChild(deleteIcon);
                         li.onclick = (e) => {
-                            if (e.target !== deleteIcon) {
+                            if (e.target !== editIcon && e.target !== deleteIcon) {
                                 document.querySelectorAll('#employeeList li').forEach(item => {
                                     item.style.backgroundColor = 'white';
                                     item.style.border = 'none';
