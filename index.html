@@ -82,6 +82,9 @@
             font-size: 0.9rem;
             word-break: break-word;
             cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         #employeeList li:hover {
             background-color: #f8f9fa;
@@ -90,6 +93,15 @@
         #employeeList li.selected {
             background-color: #e8f4ff !important;
             border: 2px solid #007bff !important;
+        }
+        .delete-button {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            min-height: auto;
+        }
+        .delete-button:hover {
+            background-color: #c82333;
         }
         #employeeCounter {
             text-align: center;
@@ -286,6 +298,19 @@
             // Foco no campo de nome pra facilitar
             document.getElementById('employeeName').focus();
         }
+        // Função pra apagar funcionário
+        async function deleteEmployee(employeeId, employeeName) {
+            if (confirm(`Tem certeza que deseja apagar ${employeeName}? Essa ação não pode be undone!`)) {
+                try {
+                    await db.collection('employees').doc(employeeId).delete();
+                    alert('Funcionário removido da nuvem! 😢');
+                    loadEmployees();
+                } catch (error) {
+                    console.error('Erro ao apagar funcionário:', error);
+                    alert('Opa, algo deu errado ao apagar! Erro: ' + error.message);
+                }
+            }
+        }
         // Função pra obter o ícone do cargo
         function getRoleIcon(role) {
             switch (role) {
@@ -302,15 +327,15 @@
                 let ul = document.getElementById('employeeList');
                 let counter = document.getElementById('employeeCounter');
                 ul.innerHTML = '';
-                // Ordena apenas por employeeId no Firestore
-                let q = db.collection('employees').orderBy('employeeId', 'asc');
+                // Consulta sem ordenação no Firestore para evitar erros de índice
+                let q = db.collection('employees');
                 let snapshot = await q.get();
                 console.log('Documentos encontrados:', snapshot.size);
                 let employees = [];
                 snapshot.forEach(doc => {
                     let employee = doc.data();
                     console.log('Dados do documento:', employee);
-                    // Verifica se os campos existem
+                    // Verifica se os campos existem e são válidos
                     if (!employee.employeeId || !employee.name || !employee.role) {
                         console.warn(`Documento ${doc.id} possui campos ausentes:`, employee);
                         return;
@@ -332,10 +357,15 @@
                 });
                 // Ordena por employeeId e name no cliente
                 employees.sort((a, b) => {
-                    if (a.employeeId === b.employeeId) {
-                        return a.name.localeCompare(b.name);
+                    // Garante que employeeId e name sejam strings válidas
+                    const idA = (a.employeeId || '').toString();
+                    const idB = (b.employeeId || '').toString();
+                    const nameA = (a.name || '').toString();
+                    const nameB = (b.name || '').toString();
+                    if (idA === idB) {
+                        return nameA.localeCompare(nameB);
                     }
-                    return a.employeeId.localeCompare(b.employeeId);
+                    return idA.localeCompare(idB);
                 });
                 console.log('Funcionários filtrados:', employees);
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
@@ -345,21 +375,32 @@
                     employees.forEach(employee => {
                         let li = document.createElement('li');
                         li.innerHTML = `${getRoleIcon(employee.role)} <strong>${employee.name}</strong> - ${employee.employeeId} - ${employee.role}`;
-                        li.onclick = () => {
-                            // Remove destaque de outros itens
-                            document.querySelectorAll('#employeeList li').forEach(item => {
-                                item.style.backgroundColor = 'white';
-                                item.style.border = 'none';
-                                item.classList.remove('selected');
-                            });
-                            // Adiciona destaque ao item clicado
-                            li.style.backgroundColor = '#e8f4ff';
-                            li.style.border = '2px solid #007bff';
-                            li.classList.add('selected');
-                            // Chama a função de edição
-                            editEmployee(employee);
-                            // Rola pro formulário
-                            document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+                        // Adiciona botão de apagar
+                        let deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Apagar';
+                        deleteButton.className = 'delete-button';
+                        deleteButton.onclick = (e) => {
+                            e.stopPropagation(); // Impede que o clique no botão ative a edição
+                            deleteEmployee(employee.id, employee.name);
+                        };
+                        li.appendChild(deleteButton);
+                        li.onclick = (e) => {
+                            if (e.target !== deleteButton) { // Evita edição ao clicar no botão de apagar
+                                // Remove destaque de outros itens
+                                document.querySelectorAll('#employeeList li').forEach(item => {
+                                    item.style.backgroundColor = 'white';
+                                    item.style.border = 'none';
+                                    item.classList.remove('selected');
+                                });
+                                // Adiciona destaque ao item clicado
+                                li.style.backgroundColor = '#e8f4ff';
+                                li.style.border = '2px solid #007bff';
+                                li.classList.add('selected');
+                                // Chama a função de edição
+                                editEmployee(employee);
+                                // Rola pro formulário
+                                document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+                            }
                         };
                         ul.appendChild(li);
                     });
