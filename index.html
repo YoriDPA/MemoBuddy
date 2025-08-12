@@ -302,6 +302,7 @@
                 let ul = document.getElementById('employeeList');
                 let counter = document.getElementById('employeeCounter');
                 ul.innerHTML = '';
+                // Ordena apenas por employeeId no Firestore
                 let q = db.collection('employees').orderBy('employeeId', 'asc');
                 let snapshot = await q.get();
                 console.log('Documentos encontrados:', snapshot.size);
@@ -309,6 +310,11 @@
                 snapshot.forEach(doc => {
                     let employee = doc.data();
                     console.log('Dados do documento:', employee);
+                    // Verifica se os campos existem
+                    if (!employee.employeeId || !employee.name || !employee.role) {
+                        console.warn(`Documento ${doc.id} possui campos ausentes:`, employee);
+                        return;
+                    }
                     let firstName = (employee.name || '').split(' ')[0]?.toLowerCase() || '';
                     if (
                         query === '' ||
@@ -323,6 +329,13 @@
                             role: employee.role
                         });
                     }
+                });
+                // Ordena por employeeId e name no cliente
+                employees.sort((a, b) => {
+                    if (a.employeeId === b.employeeId) {
+                        return a.name.localeCompare(b.name);
+                    }
+                    return a.employeeId.localeCompare(b.employeeId);
                 });
                 console.log('Funcionários filtrados:', employees);
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
@@ -353,7 +366,11 @@
                 }
             } catch (error) {
                 console.error('Erro ao carregar lista:', error);
-                alert('Erro ao carregar a lista: ' + error.message);
+                let errorMessage = error.message || 'Erro desconhecido';
+                if (error.code === 'failed-precondition') {
+                    errorMessage = 'Índice do Firestore ausente. Acesse o Firebase Console e crie um índice composto para employees com employeeId (asc) e name (asc).';
+                }
+                alert('Erro ao carregar a lista: ' + errorMessage);
             }
         }
         // Função pra buscar funcionários
