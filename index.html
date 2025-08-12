@@ -99,6 +99,14 @@
             margin-left: 5px;
             color: #666;
         }
+        #employeeList li .employee-status {
+            margin-left: 10px;
+            font-style: italic;
+            color: #28a745; /* Verde para ativo por padrão */
+        }
+        #employeeList li.inactive .employee-status {
+            color: #dc3545; /* Vermelho para inativo */
+        }
         #employeeList li.edit-mode .employee-info input,
         #employeeList li.edit-mode .employee-info select {
             padding: 5px;
@@ -185,6 +193,10 @@
             <option value="Gari">Gari</option>
             <option value="Motorista">Motorista</option>
         </select>
+        <select id="employeeStatus">
+            <option value="ativo" selected>Ativo</option>
+            <option value="inativo">Inativo</option>
+        </select>
         <button id="formButton" onclick="saveEmployee()">Salvar na Nuvem</button>
         <button id="cancelEditButton" style="display: none;" onclick="cancelEdit()">Cancelar</button>
     </div>
@@ -197,6 +209,11 @@
             <option value="Coletor">Coletor</option>
             <option value="Gari">Gari</option>
             <option value="Motorista">Motorista</option>
+        </select>
+        <select id="statusFilter" onchange="filterByStatus()">
+            <option value="">Todos os Status</option>
+            <option value="ativo">Ativos</option>
+            <option value="inativo">Inativos</option>
         </select>
         <button id="listAllButton" onclick="listAllEmployees()">Listar Todos</button>
     </div>
@@ -258,6 +275,7 @@
             let name = document.getElementById('employeeName').value.trim().toUpperCase();
             let employeeId = document.getElementById('employeeId').value.trim();
             let role = document.getElementById('employeeRole').value;
+            let status = document.getElementById('employeeStatus').value;
             if (name && employeeId && role) {
                 try {
                     // Verifica matrícula duplicada
@@ -278,6 +296,7 @@
                             name: name,
                             employeeId: employeeId,
                             role: role,
+                            status: status,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
                         alert('Funcionário atualizado na nuvem! Tá voando alto! 🚀');
@@ -287,6 +306,7 @@
                             name: name,
                             employeeId: employeeId,
                             role: role,
+                            status: status,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
                         alert('Funcionário salvo na nuvem! Tá voando alto! 🚀');
@@ -311,6 +331,7 @@
             document.getElementById('employeeName').value = '';
             document.getElementById('employeeId').value = '';
             document.getElementById('employeeRole').value = '';
+            document.getElementById('employeeStatus').value = 'ativo';
             // Remove destaque de qualquer item selecionado
             document.querySelectorAll('#employeeList li').forEach(item => {
                 item.style.backgroundColor = 'white';
@@ -331,6 +352,7 @@
             document.getElementById('employeeName').value = employee.name || '';
             document.getElementById('employeeId').value = employee.employeeId || '';
             document.getElementById('employeeRole').value = employee.role || '';
+            document.getElementById('employeeStatus').value = employee.status || 'ativo';
             // Foco no campo de nome pra facilitar
             document.getElementById('employeeName').focus();
         }
@@ -376,6 +398,16 @@
             });
             roleSelect.style.width = '120px';
 
+            let statusSelect = document.createElement('select');
+            ['ativo', 'inativo'].forEach(status => {
+                let option = document.createElement('option');
+                option.value = status;
+                option.text = status.charAt(0).toUpperCase() + status.slice(1);
+                if (status === employee.status) option.selected = true;
+                statusSelect.appendChild(option);
+            });
+            statusSelect.style.width = '90px';
+
             // Substitui os spans pelos inputs
             infoDiv.innerHTML = '';
             infoDiv.appendChild(document.createTextNode(`${getRoleIcon(employee.role)} `));
@@ -384,12 +416,15 @@
             infoDiv.appendChild(idInput);
             infoDiv.appendChild(document.createTextNode(' - '));
             infoDiv.appendChild(roleSelect);
+            infoDiv.appendChild(document.createTextNode(' ('));
+            infoDiv.appendChild(statusSelect);
+            infoDiv.appendChild(document.createTextNode(')'));
 
             // Adiciona botões de salvar e cancelar
             let saveIcon = document.createElement('span');
             saveIcon.textContent = '💾';
             saveIcon.className = 'save-icon';
-            saveIcon.onclick = () => saveInlineEdit(li, employee.id, nameInput.value, idInput.value, roleSelect.value);
+            saveIcon.onclick = () => saveInlineEdit(li, employee.id, nameInput.value, idInput.value, roleSelect.value, statusSelect.value);
 
             let cancelIcon = document.createElement('span');
             cancelIcon.textContent = '🚫';
@@ -400,7 +435,7 @@
             li.replaceChild(cancelIcon, li.querySelector('.delete-icon'));
         }
         // Função pra salvar edição em linha
-        async function saveInlineEdit(li, employeeId, newName, newEmployeeId, newRole) {
+        async function saveInlineEdit(li, employeeId, newName, newEmployeeId, newRole, newStatus) {
             try {
                 const isDuplicateId = await checkDuplicateEmployeeId(newEmployeeId, employeeId);
                 if (isDuplicateId) {
@@ -416,6 +451,7 @@
                     name: newName.toUpperCase(),
                     employeeId: newEmployeeId,
                     role: newRole,
+                    status: newStatus,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 alert('Funcionário atualizado na nuvem! Tá voando alto! 🚀');
@@ -440,9 +476,9 @@
             }
         }
         // Função pra carregar e mostrar funcionários
-        async function loadEmployees(query = '', roleFilter = '') {
+        async function loadEmployees(query = '', roleFilter = '', statusFilter = '') {
             try {
-                console.log('Iniciando busca com query:', query, 'e filtro de cargo:', roleFilter);
+                console.log('Iniciando busca com query:', query, 'filtro de cargo:', roleFilter, 'filtro de status:', statusFilter);
                 let ul = document.getElementById('employeeList');
                 let counter = document.getElementById('employeeCounter');
                 ul.innerHTML = '';
@@ -458,16 +494,17 @@
                         return;
                     }
                     let firstName = (employee.name || '').split(' ')[0]?.toLowerCase() || '';
-                    if (
-                        (query === '' || employee.employeeId.toLowerCase().includes(query.toLowerCase()) ||
-                         firstName.startsWith(query.toLowerCase()) || employee.role.toLowerCase().includes(query.toLowerCase())) &&
-                        (roleFilter === '' || employee.role === roleFilter)
-                    ) {
+                    let matchesQuery = (query === '' || employee.employeeId.toLowerCase().includes(query.toLowerCase()) ||
+                                       firstName.startsWith(query.toLowerCase()) || employee.role.toLowerCase().includes(query.toLowerCase()));
+                    let matchesRole = (roleFilter === '' || employee.role === roleFilter);
+                    let matchesStatus = (statusFilter === '' || employee.status === statusFilter);
+                    if (matchesQuery && matchesRole && matchesStatus) {
                         employees.push({
                             id: doc.id,
                             name: employee.name,
                             employeeId: employee.employeeId,
-                            role: employee.role
+                            role: employee.role,
+                            status: employee.status || 'ativo' // Define ativo como padrão se não houver status
                         });
                     }
                 });
@@ -479,16 +516,21 @@
                     const numIdB = idB.replace(/^0+/, '');
                     return numIdA.localeCompare(numIdB);
                 });
-                console.log('Funcionários ordenados por matrícula:', employees.map(e => `${e.employeeId} - ${e.name}`));
+                console.log('Funcionários ordenados por matrícula:', employees.map(e => `${e.employeeId} - ${e.name} (${e.status})`));
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
                 if (employees.length === 0) {
                     ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo! 😅</li>';
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
+                        li.classList.toggle('inactive', employee.status === 'inativo');
                         let infoDiv = document.createElement('div');
                         infoDiv.className = 'employee-info';
+                        let statusSpan = document.createElement('span');
+                        statusSpan.className = 'employee-status';
+                        statusSpan.textContent = `(${employee.status.charAt(0).toUpperCase() + employee.status.slice(1)})`;
                         infoDiv.innerHTML = `${getRoleIcon(employee.role)} <span class="employee-name">${employee.name}</span> <span class="employee-id-role">-${employee.employeeId} - ${employee.role}</span>`;
+                        infoDiv.appendChild(statusSpan);
                         let editIcon = document.createElement('span');
                         editIcon.textContent = '✏️';
                         editIcon.className = 'edit-icon';
@@ -536,21 +578,31 @@
         function searchEmployees() {
             let query = document.getElementById('searchInput').value.trim();
             let roleFilter = document.getElementById('roleFilter').value;
-            console.log('Evento de busca disparado com:', query, 'e filtro de cargo:', roleFilter);
-            loadEmployees(query, roleFilter);
+            let statusFilter = document.getElementById('statusFilter').value;
+            console.log('Evento de busca disparado com:', query, 'filtro de cargo:', roleFilter, 'filtro de status:', statusFilter);
+            loadEmployees(query, roleFilter, statusFilter);
         }
         // Função pra filtrar por cargo
         function filterByRole() {
             let query = document.getElementById('searchInput').value.trim();
             let roleFilter = document.getElementById('roleFilter').value;
-            loadEmployees(query, roleFilter);
+            let statusFilter = document.getElementById('statusFilter').value;
+            loadEmployees(query, roleFilter, statusFilter);
+        }
+        // Função pra filtrar por status
+        function filterByStatus() {
+            let query = document.getElementById('searchInput').value.trim();
+            let roleFilter = document.getElementById('roleFilter').value;
+            let statusFilter = document.getElementById('statusFilter').value;
+            loadEmployees(query, roleFilter, statusFilter);
         }
         // Função pra listar todos os funcionários
         function listAllEmployees() {
             document.getElementById('searchInput').value = '';
             document.getElementById('roleFilter').value = '';
+            document.getElementById('statusFilter').value = '';
             console.log('Listando todos os funcionários');
-            loadEmployees('', '');
+            loadEmployees('', '', '');
         }
         // Carrega a lista ao abrir a página
         loadEmployees();
