@@ -372,7 +372,10 @@
                 employees.sort((a, b) => {
                     const idA = a.employeeId || '';
                     const idB = b.employeeId || '';
-                    return idA.localeCompare(idB);
+                    // Converte para string e remove zeros à esquerda para ordenação numérica, se aplicável
+                    const numIdA = idA.replace(/^0+/, '');
+                    const numIdB = idB.replace(/^0+/, '');
+                    return numIdA.localeCompare(numIdB);
                 });
                 console.log('Funcionários ordenados por matrícula:', employees.map(e => `${e.employeeId} - ${e.name}`));
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
