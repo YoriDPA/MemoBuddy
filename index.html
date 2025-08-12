@@ -300,7 +300,7 @@
         }
         // Função pra apagar funcionário
         async function deleteEmployee(employeeId, employeeName) {
-            if (confirm(`Tem certeza que deseja apagar ${employeeName}? Essa ação não pode be undone!`)) {
+            if (confirm(`Tem certeza que deseja apagar ${employeeName}? Essa ação não pode ser desfeita!`)) {
                 try {
                     await db.collection('employees').doc(employeeId).delete();
                     alert('Funcionário removido da nuvem! 😢');
@@ -327,25 +327,25 @@
                 let ul = document.getElementById('employeeList');
                 let counter = document.getElementById('employeeCounter');
                 ul.innerHTML = '';
-                // Consulta sem ordenação no Firestore para evitar erros de índice
+                // Consulta sem ordenação no Firestore
                 let q = db.collection('employees');
                 let snapshot = await q.get();
                 console.log('Documentos encontrados:', snapshot.size);
                 let employees = [];
                 snapshot.forEach(doc => {
                     let employee = doc.data();
-                    console.log('Dados do documento:', employee);
+                    console.log('Documento bruto:', { id: doc.id, ...employee });
                     // Verifica se os campos existem e são válidos
                     if (!employee.employeeId || !employee.name || !employee.role) {
-                        console.warn(`Documento ${doc.id} possui campos ausentes:`, employee);
+                        console.warn(`Documento ${doc.id} possui campos ausentes ou inválidos:`, employee);
                         return;
                     }
                     let firstName = (employee.name || '').split(' ')[0]?.toLowerCase() || '';
                     if (
                         query === '' ||
-                        employee.employeeId?.toLowerCase().includes(query.toLowerCase()) ||
+                        employee.employeeId.toLowerCase().includes(query.toLowerCase()) ||
                         firstName.startsWith(query.toLowerCase()) ||
-                        employee.role?.toLowerCase().includes(query.toLowerCase())
+                        employee.role.toLowerCase().includes(query.toLowerCase())
                     ) {
                         employees.push({
                             id: doc.id,
@@ -357,17 +357,14 @@
                 });
                 // Ordena por employeeId e name no cliente
                 employees.sort((a, b) => {
-                    // Garante que employeeId e name sejam strings válidas
-                    const idA = (a.employeeId || '').toString();
-                    const idB = (b.employeeId || '').toString();
-                    const nameA = (a.name || '').toString();
-                    const nameB = (b.name || '').toString();
-                    if (idA === idB) {
-                        return nameA.localeCompare(nameB);
-                    }
-                    return idA.localeCompare(idB);
+                    const idA = (a.employeeId || '').toString().toLowerCase();
+                    const idB = (b.employeeId || '').toString().toLowerCase();
+                    const nameA = (a.name || '').toString().toLowerCase();
+                    const nameB = (b.name || '').toString().toLowerCase();
+                    console.log(`Comparando: employeeId: ${idA} vs ${idB}, name: ${nameA} vs ${nameB}`);
+                    return idA.localeCompare(idB) || nameA.localeCompare(nameB);
                 });
-                console.log('Funcionários filtrados:', employees);
+                console.log('Funcionários ordenados:', employees.map(e => `${e.employeeId} - ${e.name}`));
                 counter.textContent = `Total de funcionários na nuvem: ${employees.length} ☁️`;
                 if (employees.length === 0) {
                     ul.innerHTML = '<li>Nenhum funcionário encontrado. Tenta de novo! 😅</li>';
