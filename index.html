@@ -83,8 +83,21 @@
             word-break: break-word;
             cursor: pointer;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+        }
+        #employeeList li .employee-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        #employeeList li .employee-name {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        #employeeList li .employee-id-role {
+            margin-left: 5px;
+            color: #666;
         }
         #employeeList li:hover {
             background-color: #f8f9fa;
@@ -94,14 +107,14 @@
             background-color: #e8f4ff !important;
             border: 2px solid #007bff !important;
         }
-        .delete-button {
-            background-color: #dc3545;
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            min-height: auto;
+        .delete-icon {
+            color: #dc3545;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 2px 5px;
         }
-        .delete-button:hover {
-            background-color: #c82333;
+        .delete-icon:hover {
+            color: #c82333;
         }
         #employeeCounter {
             text-align: center;
@@ -371,18 +384,21 @@
                 } else {
                     employees.forEach(employee => {
                         let li = document.createElement('li');
-                        li.innerHTML = `${getRoleIcon(employee.role)} <strong>${employee.name}</strong> - ${employee.employeeId} - ${employee.role}`;
-                        // Adiciona botão de apagar
-                        let deleteButton = document.createElement('button');
-                        deleteButton.textContent = 'Apagar';
-                        deleteButton.className = 'delete-button';
-                        deleteButton.onclick = (e) => {
-                            e.stopPropagation(); // Impede que o clique no botão ative a edição
+                        let infoDiv = document.createElement('div');
+                        infoDiv.className = 'employee-info';
+                        infoDiv.innerHTML = `${getRoleIcon(employee.role)} <span class="employee-name">${employee.name}</span> <span class="employee-id-role">-${employee.employeeId} - ${employee.role}</span>`;
+                        // Adiciona ícone de apagar
+                        let deleteIcon = document.createElement('span');
+                        deleteIcon.textContent = '🗑️';
+                        deleteIcon.className = 'delete-icon';
+                        deleteIcon.onclick = (e) => {
+                            e.stopPropagation(); // Impede que o clique no ícone ative a edição
                             deleteEmployee(employee.id, employee.name);
                         };
-                        li.appendChild(deleteButton);
+                        li.appendChild(infoDiv);
+                        li.appendChild(deleteIcon);
                         li.onclick = (e) => {
-                            if (e.target !== deleteButton) { // Evita edição ao clicar no botão de apagar
+                            if (e.target !== deleteIcon) { // Evita edição ao clicar no ícone de apagar
                                 // Remove destaque de outros itens
                                 document.querySelectorAll('#employeeList li').forEach(item => {
                                     item.style.backgroundColor = 'white';
